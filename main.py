@@ -57,16 +57,23 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
         else:
             queries.append(query)
 
-    # Search and add songs to YouTube playlist
-    click.secho("Searching for videos on YouTube...", fg="blue")
-    video_ids = youtube.search_videos(queries)
-    click.secho("Search completed.", fg="blue")
-
-    # Add songs to the playlist
-    for query, video_id in video_ids.items():
-        click.secho(f"Adding {query} to the YouTube playlist...", fg="blue")
-        youtube.add_song_playlist(youtube_playlist_id, video_id)
-        click.secho(f"Added {query}.", fg="green")
+    # Search and add songs to YouTube playlist one at a time
+    click.secho("Adding songs to YouTube playlist...", fg="blue")
+    for query in queries:
+        try:
+            click.secho(f"Searching for {query}", fg="blue")
+            video = youtube.search_video(query)
+            click.secho(f"Song found: {video.title}", fg="green")
+            youtube.add_song_playlist(youtube_playlist_id, video.video_id)
+            click.secho("Song added", fg="green")
+            time.sleep(1)  # Add delay to prevent hitting quota too quickly
+        except Exception as e:
+            if "quotaExceeded" in str(e):
+                click.secho("Quota exceeded. Saving progress to resume later.", fg="red")
+                save_progress(queries[queries.index(query):], youtube_playlist_id)
+            else:
+                click.secho(f"Error: {e}", fg="red")
+            return
 
     if not only_link:
         click.secho(f"Playlist {privacy_status} playlist created", fg="blue")
@@ -80,6 +87,10 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
                              f"https://open.spotify.com/playlist/{spotify_playlist_id}",
                              f"https://www.youtube.com/playlist?list={youtube_playlist_id}")
         manager.commit()
+
+def save_progress(queries, youtube_playlist_id):
+    with open("remaining_songs.json", "w") as file:
+        json.dump({"queries": queries, "youtube_playlist_id": youtube_playlist_id}, file)
 
 @click.command()
 def resume():
@@ -104,10 +115,11 @@ def resume():
             click.secho(f"Added {query} to YouTube playlist.", fg="green")
             time.sleep(1)  # Add delay to prevent hitting quota too quickly
         except Exception as e:
-            click.secho(f"Error adding {query}: {e}", fg="red")
-            with open("remaining_songs.json", "w") as file:
-                json.dump({"queries": queries[queries.index(query):], "youtube_playlist_id": youtube_playlist_id}, file)
-            click.secho("Quota exceeded. Remaining songs saved to remaining_songs.json", fg="red")
+            if "quotaExceeded" in str(e):
+                click.secho("Quota exceeded. Saving progress to resume later.", fg="red")
+                save_progress(queries[queries.index(query):], youtube_playlist_id)
+            else:
+                click.secho(f"Error: {e}", fg="red")
             return
 
 cli.add_command(create)

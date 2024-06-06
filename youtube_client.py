@@ -2,13 +2,18 @@ import os
 import json
 import time
 from pytube import Search
+from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class YouTubeClient:
     def __init__(self):
-        if os.path.exists("credentials.json"):
+        self.creds = None
+        if os.path.exists('credentials.json'):
             self.load_credentials()
         else:
             self.authenticate_and_build()
@@ -18,39 +23,34 @@ class YouTubeClient:
             "client_secret.json",
             scopes=["https://www.googleapis.com/auth/youtube.force-ssl"],
         )
+        self.creds = flow.run_local_server(port=0)
 
-        creds = flow.run_local_server()
+        self.save_credentials()
+        self.youtube = build("youtube", "v3", credentials=self.creds)
 
-        self.save_credentials(creds)
-        self.youtube = build("youtube", "v3", credentials=creds)
-
-    def save_credentials(self, creds):
-        credentials_data = creds.to_json()
-        with open("credentials.json", "w") as credentials_file:
-            json.dump(credentials_data, credentials_file)
+    def save_credentials(self):
+        with open('credentials.json', 'w') as credentials_file:
+            credentials_file.write(self.creds.to_json())
 
     def load_credentials(self):
-        with open("credentials.json", "r") as credentials_file:
-            credentials_data = json.load(credentials_file)
-            creds = Credentials.from_authorized_user_info(json.loads(credentials_data))
-            self.youtube = build("youtube", "v3", credentials=creds)
+        with open('credentials.json', 'r') as credentials_file:
+            self.creds = Credentials.from_authorized_user_info(json.load(credentials_file))
+        if self.creds.expired and self.creds.refresh_token:
+            self.creds.refresh(Request())
+        self.youtube = build("youtube", "v3", credentials=self.creds)
 
     def create_playlist(self, name: str, description: str, privacy_status: str = "private"):
-        playlist = (
-            self.youtube.playlists()
-            .insert(
-                part="snippet,status",
-                body={
-                    "snippet": {
-                        "title": name,
-                        "description": description,
-                        "defaultLanguage": "en",
-                    },
-                    "status": {"privacyStatus": privacy_status},
+        playlist = self.youtube.playlists().insert(
+            part="snippet,status",
+            body={
+                "snippet": {
+                    "title": name,
+                    "description": description,
+                    "defaultLanguage": "en",
                 },
-            )
-            .execute()
-        )
+                "status": {"privacyStatus": privacy_status},
+            },
+        ).execute()
         return playlist
 
     def add_song_playlist(self, playlist_id: str, video_id: str):
@@ -67,6 +67,7 @@ class YouTubeClient:
             playlist_item = request.execute()
             return playlist_item
         except Exception as e:
+            logging.warning(f"Encountered error adding song to playlist: {e}")
             return None
 
     def remove_song_playlist(self, playlist_item_id: str):
@@ -74,40 +75,9 @@ class YouTubeClient:
         response = request.execute()
         return response
 
-    def search_videos(self, queries):
-        cached_results = self.load_cache()
-        results = {}
-
-        for query in queries:
-            if query in cached_results:
-                results[query] = cached_results[query]
-            else:
-                response = self.youtube.search().list(
-                    q=query,
-                    part="id",
-                    maxResults=1,
-                    type="video"
-                ).execute()
-
-                if response["items"]:
-                    video_id = response["items"][0]["id"]["videoId"]
-                    results[query] = video_id
-                    cached_results[query] = video_id
-
-                time.sleep(1)  # Add a delay between requests
-
-        self.save_cache(cached_results)
-        return results
-
-    def load_cache(self):
-        if os.path.exists("cache.json"):
-            with open("cache.json", "r") as cache_file:
-                return json.load(cache_file)
-        return {}
-
-    def save_cache(self, cache):
-        with open("cache.json", "w") as cache_file:
-            json.dump(cache, cache_file)
+    def search_video(self, query: str):
+        search_result = Search(query).results[0]
+        return search_result
 
     def get_playlist_items(self, playlist_id):
         videos = []
@@ -130,4 +100,3 @@ class YouTubeClient:
                 break
 
         return videos
-
