@@ -51,13 +51,15 @@ pip install -r requirements.txt
 ### Spotify
    
 1. Go to the Spotify Developer Dashboard and log in with your Spotify account.
-2. Click on the "Create an App" button and fill out the necessary information, such as the name and description of your application.
+2. Click on the "Create an App" button and fill out the necessary information, such as the name and description of your application. Set Redirect URI to: http://localhost:4000
 3. Once you've created the app, you'll be taken to the app dashboard. Here, you'll find your client ID and client secret, which are used to authenticate your application with the Spotify API.
 4. Add you client id and secert in `.env` file
 
 ```env
-CLIENT_ID="xxxxxxxxxxxxxxxxxx"
-CLIENT_SECRET="xxxxxxxxxxxxxxxx"
+CLIENT_ID=xxxxxxxxxxxxxxxxxx
+CLIENT_SECRET=xxxxxxxxxxxxxxxx
+REDIRECT_URI=http://localhost:4000
+SCOPE=user-library-read
 ```
 ## Usage
 
@@ -93,6 +95,13 @@ Create YouTube Playlist from Spotify Playlist
 
 ```bash
 python main.py create SPOTIFY_PLAYLIST_ID
+```
+
+- Create private YouTube playlist from your Spotify Liked/Saved tracks/songs
+
+```bash
+datestamp=$(date +"%Y-%m-%d")
+python main.py create --private -n "Spotify Saved Tracks" -d "Songs Saved on Spotify as of $datestamp" current_user_saved_tracks
 ```
 
 - Create public YouTube playlist with custom Playlist Title and Description:
