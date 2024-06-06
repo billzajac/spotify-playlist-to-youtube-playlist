@@ -74,11 +74,42 @@ class YouTubeClient:
         response = request.execute()
         return response
 
-    def search_video(self, query: str):
-        search_result = Search(query).results[0]
-        return search_result
+    def search_videos(self, queries):
+        cached_results = self.load_cache()
+        results = {}
 
-    def get_playlist(self, playlist_id):
+        for query in queries:
+            if query in cached_results:
+                results[query] = cached_results[query]
+            else:
+                response = self.youtube.search().list(
+                    q=query,
+                    part="id",
+                    maxResults=1,
+                    type="video"
+                ).execute()
+
+                if response["items"]:
+                    video_id = response["items"][0]["id"]["videoId"]
+                    results[query] = video_id
+                    cached_results[query] = video_id
+
+                time.sleep(1)  # Add a delay between requests
+
+        self.save_cache(cached_results)
+        return results
+
+    def load_cache(self):
+        if os.path.exists("cache.json"):
+            with open("cache.json", "r") as cache_file:
+                return json.load(cache_file)
+        return {}
+
+    def save_cache(self, cache):
+        with open("cache.json", "w") as cache_file:
+            json.dump(cache, cache_file)
+
+    def get_playlist_items(self, playlist_id):
         videos = []
         next_page_token = None
 
@@ -92,7 +123,7 @@ class YouTubeClient:
 
             response = request.execute()
 
-            videos.extend(response["items"])
+            videos.extend([item['snippet']['resourceId']['videoId'] for item in response['items']])
             next_page_token = response.get("nextPageToken")
 
             if not next_page_token:
