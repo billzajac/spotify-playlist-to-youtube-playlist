@@ -51,22 +51,16 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
     # Collect all track names to search on YouTube
     queries = [f"{track['track']['name']} by {track['track']['artists'][0]['name']}" for track in spotify_playlist.tracks]
 
-    # Search and add songs to YouTube playlist
+    # Search for videos on YouTube
     click.secho("Searching for videos on YouTube...", fg="blue")
-    for query in queries:
-        try:
-            click.secho(f"Searching for {query}", fg="blue")
-            video = youtube.search_video(query)
-            click.secho(f"Song found: {video.title}", fg="green")
-            youtube.add_song_playlist(youtube_playlist_id, video.video_id)
-            click.secho("Song added", fg="green")
-            time.sleep(1)  # Add delay to prevent hitting quota too quickly
-        except Exception as e:
-            click.secho(f"Error adding song: {e}", fg="red")
-            with open("remaining_songs.json", "w") as file:
-                json.dump({"queries": queries[queries.index(query):], "youtube_playlist_id": youtube_playlist_id}, file)
-            click.secho("Quota exceeded. Remaining songs saved to remaining_songs.json", fg="red")
-            return
+    video_ids = youtube.search_videos(queries)
+    click.secho("Search completed.", fg="blue")
+
+    # Add songs to the playlist
+    for query, video_id in video_ids.items():
+        click.secho(f"Adding {query} to the YouTube playlist...", fg="blue")
+        youtube.add_song_playlist(youtube_playlist_id, video_id)
+        click.secho(f"Added {query}.", fg="green")
 
     if not only_link:
         click.secho(f"Playlist {privacy_status} playlist created", fg="blue")
