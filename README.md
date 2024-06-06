@@ -91,7 +91,13 @@ Options:
 
 #### Examples
 
-Create YouTube Playlist from Spotify Playlist
+List your Spotify Playlists with PLAYLIST IDs
+
+```bash
+python main.py create SPOTIFY_PLAYLIST_ID
+```
+
+- Create YouTube Playlist from Spotify Playlist
 
 ```bash
 python main.py create SPOTIFY_PLAYLIST_ID
@@ -101,7 +107,7 @@ python main.py create SPOTIFY_PLAYLIST_ID
 
 ```bash
 datestamp=$(date +"%Y-%m-%d")
-python main.py create --private -n "Spotify Saved Tracks" -d "Songs Saved on Spotify as of $datestamp" current_user_saved_tracks
+python main.py create --private current_user_saved_tracks
 ```
 
 - Create public YouTube playlist with custom Playlist Title and Description:
