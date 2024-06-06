@@ -25,7 +25,23 @@ Python script to convert Spotify playlist to YouTube playlist.
 
 1. Convert Spotify playlist to YouTube Playlist
 2. Sync YouTube Playliset with Spotify playlist
-    Sync Multiple Playlists
+    - Sync Multiple Playlists
+3. Retrieve and alphabetize the list of saved tracks from Spotify
+4. Remove duplicates from the list of tracks
+5. Save the list of tracks to a JSON file
+6. Handle the YouTube API quota and allow resuming the process the following day
+
+### Step-by-Step Implementation Details for 3-6
+
+1. SpotifyClient to alphabetize and save tracks:
+    - Retrieve all tracks
+    - Sort by artist and song
+    - Remove duplicates
+    - Save the list to a JSON file
+2. YouTubeClient to handle quota and save progress:
+    - Wrap song additions in a try/catch block
+    - Save the information for remaining songs to a JSON file
+    - Option to resume adding songs
 
 ## Setup
 

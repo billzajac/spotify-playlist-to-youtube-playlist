@@ -1,15 +1,13 @@
 import os
 import json
-
+import time
 from pytube import Search
 from pytube.contrib.search import logger
-
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 logger.disabled = True
-
 
 class YouTubeClient:
     def __init__(self):
@@ -39,9 +37,8 @@ class YouTubeClient:
             credentials_data = json.load(credentials_file)
             creds = Credentials.from_authorized_user_info(json.loads(credentials_data))
             self.youtube = build("youtube", "v3", credentials=creds)
-    def create_playlist(
-        self, name: str, description: str, privacy_status: str = "private"
-    ):
+
+    def create_playlist(self, name: str, description: str, privacy_status: str = "private"):
         playlist = (
             self.youtube.playlists()
             .insert(
@@ -57,29 +54,32 @@ class YouTubeClient:
             )
             .execute()
         )
-
         return playlist
 
     def add_song_playlist(self, playlist_id: str, video_id: str):
-        request = self.youtube.playlistItems().insert(
-            part="snippet",
-            body={
-                "snippet": {
-                    "playlistId": playlist_id,
-                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                }
-            },
-        )
-        playlist_item = request.execute()
-        return playlist_item
+        try:
+            request = self.youtube.playlistItems().insert(
+                part="snippet",
+                body={
+                    "snippet": {
+                        "playlistId": playlist_id,
+                        "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                    }
+                },
+            )
+            playlist_item = request.execute()
+            return playlist_item
+        except Exception as e:
+            return None
 
-    def remove_song_playlist(self, playlist_id: str, video_id: str):
-        request = self.youtube.playlistItems().delete(id=video_id)
+    def remove_song_playlist(self, playlist_item_id: str):
+        request = self.youtube.playlistItems().delete(id=playlist_item_id)
         response = request.execute()
         return response
 
     def search_video(self, query: str):
-        return Search(query).results[0]
+        search_result = Search(query).results[0]
+        return search_result
 
     def get_playlist(self, playlist_id):
         videos = []
@@ -102,3 +102,4 @@ class YouTubeClient:
                 break
 
         return videos
+
