@@ -1,18 +1,16 @@
 import os
-from dataclasses import dataclass
-from datetime import datetime
 import json
-
+import logging
+from datetime import datetime
+from dataclasses import dataclass
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import dotenv
-import logging
 
 dotenv.load_dotenv()
 
 # Get the current date
 current_date = datetime.now()
-
 # Format the date as YYYY-MM-DD
 datestamp = current_date.strftime("%Y-%m-%d")
 
@@ -24,17 +22,20 @@ class Playlist:
     description: str
     tracks: list[str]
 
-
 class SpotifyClient:
     def __init__(self) -> None:
-        CLIENT_ID = os.getenv("CLIENT_ID")
-        CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-        REDIRECT_URI = os.getenv("REDIRECT_URI")
-        SCOPE = os.getenv("SCOPE")
+        CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+        CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+        REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
+        SCOPE = "user-library-read"
+
+        if not CLIENT_ID or not CLIENT_SECRET or not REDIRECT_URI:
+            raise ValueError("Missing Spotify API credentials. Please set them in the .env file.")
+
         self.spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
-                                               client_secret=CLIENT_SECRET,
-                                               redirect_uri=REDIRECT_URI,
-                                               scope=SCOPE))
+                                                                 client_secret=CLIENT_SECRET,
+                                                                 redirect_uri=REDIRECT_URI,
+                                                                 scope=SCOPE))
 
     def get_playlist(self, id: str):
         if id == "current_user_saved_tracks":
@@ -72,4 +73,3 @@ class SpotifyClient:
                 artists = ", ".join([artist["name"] for artist in track["track"]["artists"]])
                 queries.append(f"{track_name} by {artists}")
             return Playlist(name, description, queries)
-

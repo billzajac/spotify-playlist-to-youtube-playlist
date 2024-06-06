@@ -2,12 +2,9 @@ import os
 import json
 import time
 from pytube import Search
-from pytube.contrib.search import logger
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-
-logger.disabled = True
 
 class YouTubeClient:
     def __init__(self):

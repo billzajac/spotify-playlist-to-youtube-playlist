@@ -72,10 +72,9 @@ pip install -r requirements.txt
 4. Add you client id and secert in `.env` file
 
 ```env
-CLIENT_ID=xxxxxxxxxxxxxxxxxx
-CLIENT_SECRET=xxxxxxxxxxxxxxxx
-REDIRECT_URI=http://localhost:4000
-SCOPE=user-library-read
+SPOTIFY_CLIENT_ID=xxxxxxxxxxxxxxxxxx
+SPOTIFY_CLIENT_SECRET=xxxxxxxxxxxxxxxx
+SPOTIFY_REDIRECT_URI=http://localhost:4000
 ```
 ## Usage
 
