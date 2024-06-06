@@ -73,3 +73,4 @@ class SpotifyClient:
                 artists = ", ".join([artist["name"] for artist in track["track"]["artists"]])
                 queries.append(f"{track_name} by {artists}")
             return Playlist(name, description, queries)
+

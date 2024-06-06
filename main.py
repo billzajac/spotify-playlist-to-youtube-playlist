@@ -49,9 +49,15 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
         youtube_playlist_id = youtube.create_playlist(spotify_playlist.name, spotify_playlist.description, privacy_status=privacy_status)["id"]
 
     # Collect all track names to search on YouTube
-    queries = [f"{track['track']['name']} by {track['track']['artists'][0]['name']}" for track in spotify_playlist.tracks]
+    queries = []
+    for track in spotify_playlist.tracks:
+        query = f"{track}"
+        if len(query) < 8:
+            click.secho(f"Skipping track: {query} (too short)", fg="yellow")
+        else:
+            queries.append(query)
 
-    # Search for videos on YouTube
+    # Search and add songs to YouTube playlist
     click.secho("Searching for videos on YouTube...", fg="blue")
     video_ids = youtube.search_videos(queries)
     click.secho("Search completed.", fg="blue")
