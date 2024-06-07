@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import requests
+from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
@@ -79,19 +81,19 @@ class YouTubeClient:
 
     def search_video(self, query: str):
         try:
-            request = self.youtube.search().list(
-                q=query,
-                part="id",
-                maxResults=1,
-                type="video"
-            )
-            response = request.execute()
-            logging.info(f"Search result for query '{query}': {response}")
-            if 'items' in response and len(response['items']) > 0:
-                return response['items'][0]['id']['videoId']
-            else:
-                logging.warning(f"No video found for query: {query}")
-                return None
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            search_url = f"https://www.youtube.com/results?search_query={query}"
+            response = requests.get(search_url, headers=headers)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            time.sleep(1)  # Add a delay between requests
+            for video in soup.find_all('a', href=True):
+                if '/watch?v=' in video['href']:
+                    video_id = video['href'].split('/watch?v=')[1]
+                    return video_id
+            logging.warning(f"No video found for query: {query}")
+            return None
         except Exception as e:
             logging.warning(f"Encountered error searching for video: {e}")
             return None
