@@ -93,7 +93,11 @@ class YouTubeClient:
                     video = result['entries'][0]
                 else:
                     video = result
-                return video['id']
+                if 'id' in video:
+                    return video['id']
+                else:
+                    logging.warning(f"No 'id' found in video result for query: {query}")
+                    return None
             except Exception as e:
                 logging.warning(f"Encountered error searching for video: {e}")
                 return None
@@ -119,3 +123,4 @@ class YouTubeClient:
                 break
 
         return videos
+
