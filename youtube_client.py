@@ -82,21 +82,23 @@ class YouTubeClient:
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'default_search': 'ytsearch1',  # Search and return the first result
+            'default_search': 'ytsearch1',  # Perform a YouTube search and return the first result
             'skip_download': True,
             'extract_flat': True
         }
         with YoutubeDL(ydl_opts) as ydl:
             try:
                 result = ydl.extract_info(query, download=False)
-                if 'entries' in result:
+                logging.info(f"Search result for query '{query}': {result}")
+                if 'entries' in result and len(result['entries']) > 0:
                     video = result['entries'][0]
+                    if 'id' in video:
+                        return video['id']
+                    else:
+                        logging.warning(f"No 'id' found in video result for query: {query}")
+                        return None
                 else:
-                    video = result
-                if 'id' in video:
-                    return video['id']
-                else:
-                    logging.warning(f"No 'id' found in video result for query: {query}")
+                    logging.warning(f"No entries found in video result for query: {query}")
                     return None
             except Exception as e:
                 logging.warning(f"Encountered error searching for video: {e}")

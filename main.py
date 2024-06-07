@@ -24,14 +24,15 @@ def cli():
 def create(spotify_playlist_id: str, public: bool, private: bool, name: str, description: str, only_link: bool, save_to_sync: bool):
     """Create a YouTube Playlist from Spotify Playlist"""
 
+    spotify = SpotifyClient()
+    
     if os.path.exists("saved_tracks.json"):
         click.secho("Loading saved tracks from saved_tracks.json...", fg="blue")
         with open("saved_tracks.json", "r") as file:
-            spotify_playlist = json.load(file)
-        spotify_playlist = SpotifyClient().get_playlist_from_json(spotify_playlist)
+            spotify_playlist_json = json.load(file)
+        spotify_playlist = spotify.get_playlist_from_json(spotify_playlist_json)
         click.secho("Loaded saved tracks from saved_tracks.json.", fg="green")
     else:
-        spotify = SpotifyClient()
         click.secho("Fetching saved tracks from Spotify...", fg="blue")
         spotify_playlist = spotify.get_playlist(spotify_playlist_id)
         click.secho("Fetched saved tracks from Spotify.", fg="green")
@@ -49,15 +50,15 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
     if name and description:
         youtube_playlist_id = youtube.create_playlist(name, description, privacy_status=privacy_status)["id"]
     elif description:
-        youtube_playlist_id = youtube.create_playlist(spotify_playlist['name'], description, privacy_status=privacy_status)["id"]
+        youtube_playlist_id = youtube.create_playlist(spotify_playlist.name, description, privacy_status=privacy_status)["id"]
     elif name:
-        youtube_playlist_id = youtube.create_playlist(name, spotify_playlist['description'], privacy_status=privacy_status)["id"]
+        youtube_playlist_id = youtube.create_playlist(name, spotify_playlist.description, privacy_status=privacy_status)["id"]
     else:
-        youtube_playlist_id = youtube.create_playlist(spotify_playlist['name'], spotify_playlist['description'], privacy_status=privacy_status)["id"]
+        youtube_playlist_id = youtube.create_playlist(spotify_playlist.name, spotify_playlist.description, privacy_status=privacy_status)["id"]
 
     # Collect all track names to search on YouTube
     queries = []
-    for track in spotify_playlist['tracks']:
+    for track in spotify_playlist.tracks:
         query = f"{track}"
         if len(query) < 8:
             click.secho(f"Skipping track: {query} (too short)", fg="yellow")
@@ -93,7 +94,7 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
         click.secho(f"https://www.youtube.com/playlist?list={youtube_playlist_id}", fg="blue")
 
     if save_to_sync:
-        manager.add_playlist(spotify_playlist_id, youtube_playlist_id, spotify_playlist['name'], name,
+        manager.add_playlist(spotify_playlist_id, youtube_playlist_id, spotify_playlist.name, name,
                              f"https://open.spotify.com/playlist/{spotify_playlist_id}",
                              f"https://www.youtube.com/playlist?list={youtube_playlist_id}")
         manager.commit()
