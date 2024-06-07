@@ -1,7 +1,6 @@
 import os
 import json
 import time
-from yt_dlp import YoutubeDL
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
@@ -79,30 +78,23 @@ class YouTubeClient:
         return response
 
     def search_video(self, query: str):
-        ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'default_search': 'ytsearch1',  # Perform a YouTube search and return the first result
-            'skip_download': True,
-            'extract_flat': True
-        }
-        with YoutubeDL(ydl_opts) as ydl:
-            try:
-                result = ydl.extract_info(query, download=False)
-                logging.info(f"Search result for query '{query}': {result}")
-                if 'entries' in result and len(result['entries']) > 0:
-                    video = result['entries'][0]
-                    if 'id' in video:
-                        return video['id']
-                    else:
-                        logging.warning(f"No 'id' found in video result for query: {query}")
-                        return None
-                else:
-                    logging.warning(f"No entries found in video result for query: {query}")
-                    return None
-            except Exception as e:
-                logging.warning(f"Encountered error searching for video: {e}")
+        try:
+            request = self.youtube.search().list(
+                q=query,
+                part="id",
+                maxResults=1,
+                type="video"
+            )
+            response = request.execute()
+            logging.info(f"Search result for query '{query}': {response}")
+            if 'items' in response and len(response['items']) > 0:
+                return response['items'][0]['id']['videoId']
+            else:
+                logging.warning(f"No video found for query: {query}")
                 return None
+        except Exception as e:
+            logging.warning(f"Encountered error searching for video: {e}")
+            return None
 
     def get_playlist_items(self, playlist_id):
         videos = []
