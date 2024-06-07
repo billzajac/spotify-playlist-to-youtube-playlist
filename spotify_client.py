@@ -1,16 +1,18 @@
 import os
-import json
-import logging
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+import json
+
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 import dotenv
+import logging
 
 dotenv.load_dotenv()
 
 # Get the current date
 current_date = datetime.now()
+
 # Format the date as YYYY-MM-DD
 datestamp = current_date.strftime("%Y-%m-%d")
 
@@ -21,6 +23,7 @@ class Playlist:
     name: str
     description: str
     tracks: list[str]
+
 
 class SpotifyClient:
     def __init__(self) -> None:
@@ -33,9 +36,9 @@ class SpotifyClient:
             raise ValueError("Missing Spotify API credentials. Please set them in the .env file.")
 
         self.spotify = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
-                                                                 client_secret=CLIENT_SECRET,
-                                                                 redirect_uri=REDIRECT_URI,
-                                                                 scope=SCOPE))
+                                               client_secret=CLIENT_SECRET,
+                                               redirect_uri=REDIRECT_URI,
+                                               scope=SCOPE))
 
     def get_playlist(self, id: str):
         if id == "current_user_saved_tracks":
@@ -58,7 +61,7 @@ class SpotifyClient:
 
             # Save to JSON
             with open("saved_tracks.json", "w") as file:
-                json.dump({"tracks": track_list}, file, indent=4)
+                json.dump({"name": name, "description": description, "tracks": track_list}, file, indent=4)
 
             return Playlist(name, description, track_list)
         else:
@@ -73,4 +76,10 @@ class SpotifyClient:
                 artists = ", ".join([artist["name"] for artist in track["track"]["artists"]])
                 queries.append(f"{track_name} by {artists}")
             return Playlist(name, description, queries)
+
+    def get_playlist_from_json(self, json_data):
+        name = json_data["name"]
+        description = json_data["description"]
+        tracks = json_data["tracks"]
+        return Playlist(name, description, tracks)
 
