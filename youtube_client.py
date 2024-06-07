@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from pytube import Search
+from yt_dlp import YoutubeDL
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
@@ -79,8 +79,24 @@ class YouTubeClient:
         return response
 
     def search_video(self, query: str):
-        search_result = Search(query).results[0]
-        return search_result
+        ydl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'default_search': 'ytsearch1',  # Search and return the first result
+            'skip_download': True,
+            'extract_flat': True
+        }
+        with YoutubeDL(ydl_opts) as ydl:
+            try:
+                result = ydl.extract_info(query, download=False)
+                if 'entries' in result:
+                    video = result['entries'][0]
+                else:
+                    video = result
+                return video['id']
+            except Exception as e:
+                logging.warning(f"Encountered error searching for video: {e}")
+                return None
 
     def get_playlist_items(self, playlist_id):
         videos = []

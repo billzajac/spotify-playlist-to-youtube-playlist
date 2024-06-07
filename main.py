@@ -62,10 +62,13 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
     for query in queries:
         try:
             click.secho(f"Searching for {query}", fg="blue")
-            video = youtube.search_video(query)
-            click.secho(f"Song found: {video.title}", fg="green")
-            youtube.add_song_playlist(youtube_playlist_id, video.video_id)
-            click.secho("Song added", fg="green")
+            video_id = youtube.search_video(query)
+            if video_id:
+                click.secho(f"Song found: {query}", fg="green")
+                youtube.add_song_playlist(youtube_playlist_id, video_id)
+                click.secho("Song added", fg="green")
+            else:
+                click.secho(f"Could not find video for {query}", fg="red")
             time.sleep(1)  # Add delay to prevent hitting quota too quickly
         except Exception as e:
             if "quotaExceeded" in str(e):
@@ -110,9 +113,12 @@ def resume():
     click.secho("Resuming adding songs to YouTube playlist...", fg="blue")
     for query in queries:
         try:
-            video = youtube.search_video(query)
-            youtube.add_song_playlist(youtube_playlist_id, video.video_id)
-            click.secho(f"Added {query} to YouTube playlist.", fg="green")
+            video_id = youtube.search_video(query)
+            if video_id:
+                youtube.add_song_playlist(youtube_playlist_id, video_id)
+                click.secho(f"Added {query} to YouTube playlist.", fg="green")
+            else:
+                click.secho(f"Could not find video for {query}", fg="red")
             time.sleep(1)  # Add delay to prevent hitting quota too quickly
         except Exception as e:
             if "quotaExceeded" in str(e):
