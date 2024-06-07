@@ -34,7 +34,10 @@ class YouTubeClient:
 
     def load_credentials(self):
         with open('credentials.json', 'r') as credentials_file:
-            self.creds = Credentials.from_authorized_user_info(json.load(credentials_file))
+            credentials_data = json.load(credentials_file)
+            if isinstance(credentials_data, str):
+                credentials_data = json.loads(credentials_data)
+            self.creds = Credentials.from_authorized_user_info(credentials_data)
         if self.creds.expired and self.creds.refresh_token:
             self.creds.refresh(Request())
         self.youtube = build("youtube", "v3", credentials=self.creds)
