@@ -1,20 +1,16 @@
 import os
 import json
 import time
-import requests
-from bs4 import BeautifulSoup
-from google.auth.transport.requests import Request
+import logging
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-import logging
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+import requests
+import click
 
 class YouTubeClient:
     def __init__(self):
-        self.creds = None
-        if os.path.exists('credentials.json'):
+        if os.path.exists("credentials.json"):
             self.load_credentials()
         else:
             self.authenticate_and_build()
@@ -24,37 +20,39 @@ class YouTubeClient:
             "client_secret.json",
             scopes=["https://www.googleapis.com/auth/youtube.force-ssl"],
         )
-        self.creds = flow.run_local_server(port=0)
 
-        self.save_credentials()
-        self.youtube = build("youtube", "v3", credentials=self.creds)
+        creds = flow.run_local_server()
 
-    def save_credentials(self):
-        with open('credentials.json', 'w') as credentials_file:
-            credentials_file.write(self.creds.to_json())
+        self.save_credentials(creds)
+        self.youtube = build("youtube", "v3", credentials=creds)
+
+    def save_credentials(self, creds):
+        credentials_data = creds.to_json()
+        with open("credentials.json", "w") as credentials_file:
+            json.dump(credentials_data, credentials_file)
 
     def load_credentials(self):
-        with open('credentials.json', 'r') as credentials_file:
+        with open("credentials.json", "r") as credentials_file:
             credentials_data = json.load(credentials_file)
-            if isinstance(credentials_data, str):
-                credentials_data = json.loads(credentials_data)
-            self.creds = Credentials.from_authorized_user_info(credentials_data)
-        if self.creds.expired and self.creds.refresh_token:
-            self.creds.refresh(Request())
-        self.youtube = build("youtube", "v3", credentials=self.creds)
+            creds = Credentials.from_authorized_user_info(json.loads(credentials_data))
+            self.youtube = build("youtube", "v3", credentials=creds)
 
     def create_playlist(self, name: str, description: str, privacy_status: str = "private"):
-        playlist = self.youtube.playlists().insert(
-            part="snippet,status",
-            body={
-                "snippet": {
-                    "title": name,
-                    "description": description,
-                    "defaultLanguage": "en",
+        playlist = (
+            self.youtube.playlists()
+            .insert(
+                part="snippet,status",
+                body={
+                    "snippet": {
+                        "title": name,
+                        "description": description,
+                        "defaultLanguage": "en",
+                    },
+                    "status": {"privacyStatus": privacy_status},
                 },
-                "status": {"privacyStatus": privacy_status},
-            },
-        ).execute()
+            )
+            .execute()
+        )
         return playlist
 
     def add_song_playlist(self, playlist_id: str, video_id: str):
@@ -71,7 +69,6 @@ class YouTubeClient:
             playlist_item = request.execute()
             return playlist_item
         except Exception as e:
-            logging.warning(f"Encountered error adding song to playlist: {e}")
             return None
 
     def remove_song_playlist(self, playlist_item_id: str):
@@ -80,25 +77,25 @@ class YouTubeClient:
         return response
 
     def search_video(self, query: str):
-        try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-            }
-            search_url = f"https://www.youtube.com/results?search_query={query}"
-            response = requests.get(search_url, headers=headers)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            time.sleep(1)  # Add a delay between requests
-            for video in soup.find_all('a', href=True):
-                if '/watch?v=' in video['href']:
-                    video_id = video['href'].split('/watch?v=')[1]
-                    return video_id
-            logging.warning(f"No video found for query: {query}")
-            return None
-        except Exception as e:
-            logging.warning(f"Encountered error searching for video: {e}")
+        search_url = f"https://www.youtube.com/results?search_query={query}"
+        response = requests.get(search_url)
+
+        if response.status_code == 200:
+            html_content = response.text
+            start_index = html_content.find("/watch?v=")
+            if start_index != -1:
+                end_index = html_content.find("\"", start_index)
+                video_id = html_content[start_index + 9:end_index]
+                logging.info(f"Using URL https://www.youtube.com/watch?v={video_id}")
+                return video_id
+            else:
+                logging.warning(f"No video found for query: {query}")
+                return None
+        else:
+            logging.warning(f"Error fetching search results for query: {query}")
             return None
 
-    def get_playlist_items(self, playlist_id):
+    def get_playlist(self, playlist_id):
         videos = []
         next_page_token = None
 
@@ -112,7 +109,7 @@ class YouTubeClient:
 
             response = request.execute()
 
-            videos.extend([item['snippet']['resourceId']['videoId'] for item in response['items']])
+            videos.extend(response["items"])
             next_page_token = response.get("nextPageToken")
 
             if not next_page_token:

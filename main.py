@@ -77,7 +77,7 @@ def create(spotify_playlist_id: str, public: bool, private: bool, name: str, des
                 click.secho("Song added", fg="green")
             else:
                 click.secho(f"Could not find video for {query}", fg="red")
-            time.sleep(1)  # Add delay to prevent hitting quota too quickly
+            #time.sleep(1)  # Add delay to prevent hitting quota too quickly
         except Exception as e:
             if "quotaExceeded" in str(e):
                 click.secho("Quota exceeded. Saving progress to resume later.", fg="red")
