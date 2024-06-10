@@ -6,7 +6,6 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import requests
-import click
 
 class YouTubeClient:
     def __init__(self):
@@ -85,7 +84,8 @@ class YouTubeClient:
             start_index = html_content.find("/watch?v=")
             if start_index != -1:
                 end_index = html_content.find("\"", start_index)
-                video_id = html_content[start_index + 9:end_index]
+                video_id_with_params = html_content[start_index + 9:end_index]
+                video_id = video_id_with_params.split("\\")[0]  # Remove any extra URL parameters
                 logging.info(f"Using URL https://www.youtube.com/watch?v={video_id}")
                 return video_id
             else:
@@ -116,4 +116,16 @@ class YouTubeClient:
                 break
 
         return videos
+
+    def find_playlist_by_name(self, name: str):
+        request = self.youtube.playlists().list(
+            part="snippet",
+            mine=True,
+            maxResults=50
+        )
+        response = request.execute()
+        for playlist in response["items"]:
+            if playlist["snippet"]["title"] == name:
+                return playlist
+        return None
 
