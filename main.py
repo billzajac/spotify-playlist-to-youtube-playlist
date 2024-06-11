@@ -113,7 +113,8 @@ def create(
 
     # Add songs to the playlist
     click.secho("Adding songs to YouTube playlist...", fg="blue")
-    for query in queries:
+    # Youtube limits only allow me to add 199 songs per day
+    for query in queries[:199]:
         click.secho(f"Searching for {query}", fg="blue")
         video_id = youtube.search_video(query)
         if video_id:
@@ -136,6 +137,21 @@ def create(
     if save_to_sync:
         manager.add_playlist(spotify_playlist_id, youtube_playlist_id, spotify_playlist.name, name, f"https://open.spotify.com/playlist/{spotify_playlist_id}", f"https://www.youtube.com/playlist?list={youtube_playlist_id}")
         manager.commit()
+
+    # Finally, update the saved_tracks.json
+    # Check if there are at least 199 tracks
+    if os.path.exists("saved_tracks.json"):
+        if len(saved_tracks['tracks']) >= 199:
+            # Remove the first 199 tracks
+            saved_tracks['tracks'] = saved_tracks['tracks'][199:]
+        else:
+            click.secho("There are fewer than 199 tracks in the file.", fg="red")
+
+        # Save the updated list back to the file
+        with open("saved_tracks.json", "w") as file:
+            json.dump(saved_tracks, file, indent=4)
+
+        click.secho("Updated saved_tracks.json with the remaining tracks.", fg="green")
 
 cli.add_command(create)
 

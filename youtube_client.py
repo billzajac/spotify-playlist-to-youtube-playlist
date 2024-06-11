@@ -55,20 +55,19 @@ class YouTubeClient:
         return playlist
 
     def add_song_playlist(self, playlist_id: str, video_id: str):
-        try:
-            request = self.youtube.playlistItems().insert(
-                part="snippet",
-                body={
-                    "snippet": {
-                        "playlistId": playlist_id,
-                        "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                    }
-                },
-            )
-            playlist_item = request.execute()
-            return playlist_item
-        except Exception as e:
-            return None
+        # Do not catch an exception here, because we want it to fail so we know
+        # what to add next
+        request = self.youtube.playlistItems().insert(
+            part="snippet",
+            body={
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
+                }
+            },
+        )
+        playlist_item = request.execute()
+        return playlist_item
 
     def remove_song_playlist(self, playlist_item_id: str):
         request = self.youtube.playlistItems().delete(id=playlist_item_id)
