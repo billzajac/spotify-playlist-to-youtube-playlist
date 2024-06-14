@@ -46,6 +46,7 @@ def create(
 
     spotify = SpotifyClient()
     youtube = YouTubeClient()
+    privacy_status = "private"
 
     if os.path.exists("saved_tracks.json"):
         click.secho("Loading saved tracks from saved_tracks.json...", fg="blue")
@@ -75,8 +76,6 @@ def create(
         if public:
             privacy_status = "public"
         elif private:
-            privacy_status = "private"
-        else:
             privacy_status = "private"
 
         # Generate YouTube Playlist

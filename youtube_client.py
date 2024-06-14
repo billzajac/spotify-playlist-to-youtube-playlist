@@ -5,10 +5,12 @@ import logging
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
 import requests
 
 class YouTubeClient:
     def __init__(self):
+        self.creds = None
         if os.path.exists("credentials.json"):
             self.load_credentials()
         else:
@@ -20,7 +22,7 @@ class YouTubeClient:
             scopes=["https://www.googleapis.com/auth/youtube.force-ssl"],
         )
 
-        creds = flow.run_local_server()
+        creds = flow.run_local_server(port=0)
 
         self.save_credentials(creds)
         self.youtube = build("youtube", "v3", credentials=creds)
@@ -28,13 +30,20 @@ class YouTubeClient:
     def save_credentials(self, creds):
         credentials_data = creds.to_json()
         with open("credentials.json", "w") as credentials_file:
-            json.dump(credentials_data, credentials_file)
+            credentials_file.write(credentials_data)
 
     def load_credentials(self):
         with open("credentials.json", "r") as credentials_file:
-            credentials_data = json.load(credentials_file)
-            creds = Credentials.from_authorized_user_info(json.loads(credentials_data))
-            self.youtube = build("youtube", "v3", credentials=creds)
+            creds_data = json.load(credentials_file)
+
+            # Only call json.loads if creds_data is a string
+            if isinstance(creds_data, str):
+                creds_data = json.loads(creds_data)
+
+            self.creds = Credentials.from_authorized_user_info(creds_data)
+            if self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            self.youtube = build("youtube", "v3", credentials=self.creds)
 
     def create_playlist(self, name: str, description: str, privacy_status: str = "private"):
         playlist = (
